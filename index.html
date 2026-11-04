@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>בונה מצולעים - זוויות פנימיות מתוקן</title>
+    <title>בונה מצולעים - זוויות פנימיות חסין טעויות</title>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -74,7 +74,7 @@
 
 <div class="container">
     <h1>📐 בונה מצולעים דינמי</h1>
-    <p class="instructions">גררו את הנקודות הכחולות. המערכת תחשב ותציג בדיוק 90° בריבוע ורק זוויות פנימיות!</p>
+    <p class="instructions">גררו את הנקודות הכחולות. המערכת תציג בדיוק 90° בריבוע ותמיד תישאר בתוך המצולע!</p>
     
     <div class="controls">
         <button onclick="changeSides(-1)">➖ פחות צלע</button>
@@ -98,7 +98,7 @@
     const statsBox = document.getElementById('stats-box');
     const sidesCountLabel = document.getElementById('sides-count');
 
-    let numSides = 4; // מתחילים ממרובע כדי לוודא שזה 90 מעלות ישר
+    let numSides = 4; 
     let vertices = [];
     let draggedVertex = null;
     const vertexRadius = 10;
@@ -110,9 +110,8 @@
         const centerY = canvas.height / 2;
         const radius = 120;
 
-        // בניית מצולע משוכלל בסיסי בכיוון קבוע
         for (let i = 0; i < numSides; i++) {
-            const angle = (i * 2 * Math.PI) / numSides - Math.PI / 4; // סיבוב קל שריבוע יראה ישר
+            const angle = (i * 2 * Math.PI) / numSides - Math.PI / 4; 
             vertices.push({
                 x: centerX + radius * Math.cos(angle),
                 y: centerY + radius * Math.sin(angle)
@@ -133,55 +132,61 @@
         initPolygon(numSides);
     }
 
-    // חישוב כיוון המצולע הכולל (חיובי = נגד השעון, שלילי = עם השעון)
-    function getPolygonSignedArea() {
-        let area = 0;
-        for (let i = 0; i < numSides; i++) {
-            let j = (i + 1) % numSides;
-            area += (vertices[i].x * vertices[j].y) - (vertices[j].x * vertices[i].y);
+    // פונקציית בדיקה פיזית חסינת טעויות: האם נקודה נמצאת בתוך המצולע?
+    function isPointInPolygon(px, py) {
+        let inside = false;
+        for (let i = 0, j = numSides - 1; i < numSides; j = i++) {
+            const xi = vertices[i].x, yi = vertices[i].y;
+            const xj = vertices[j].x, yj = vertices[j].y;
+            
+            const intersect = ((yi > py) !== (yj > py))
+                && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
         }
-        return area;
+        return inside;
     }
 
     function calculateInteriorAngles() {
         const angles = [];
-        const area = getPolygonSignedArea();
-        // אם השטח חיובי המצולע מצויר נגד כיוון השעון בקנבס, אם שלילי אז עם כיוון השעון
-        const isCounterClockwise = area > 0;
 
         for (let i = 0; i < numSides; i++) {
             const prev = vertices[(i - 1 + numSides) % numSides];
             const curr = vertices[i];
             const next = vertices[(i + 1) % numSides];
 
-            // וקטורים יוצאים מהקודקוד הנוכחי
-            const v1x = prev.x - curr.x;
-            const v1y = prev.y - curr.y;
-            const v2x = next.x - curr.x;
-            const v2y = next.y - curr.y;
+            // וקטורים לקודקוד הקודם והבא
+            const aPrev = Math.atan2(prev.y - curr.y, prev.x - curr.x);
+            const aNext = Math.atan2(next.y - curr.y, next.x - curr.x);
 
-            // זוויות אבסולוטיות של הוקטורים בקנבס
-            const aPrev = Math.atan2(v1y, v1x);
-            const aNext = Math.atan2(v2y, v2x);
-
-            // חישוב ההפרש בין הזוויות
+            // חישוב זווית פוטנציאלית א'
             let diff = aNext - aPrev;
             if (diff < 0) diff += 2 * Math.PI;
 
-            // התאמה מוחלטת לפנים המצולע לפי כיוון הסיבוב שלו
-            let interiorAngle = isCounterClockwise ? diff : (2 * Math.PI - diff);
-            let degrees = (interiorAngle * 180) / Math.PI;
-            
-            // חישוב כיוון מרכז הזווית להצגת הטקסט והקשת
-            let midAngle = aPrev + (isCounterClockwise ? interiorAngle / 2 : -interiorAngle / 2);
+            // בדיקה על ידי שליחת "חיישן" קטן למרכז הזווית כדי לבדוק אם הוא בפנים או בחוץ
+            let midAngleTest = aPrev + diff / 2;
+            const testX = curr.x + 15 * Math.cos(midAngleTest);
+            const testY = curr.y + 15 * Math.sin(midAngleTest);
+
+            let finalAngle = diff;
+            let finalMidAngle = midAngleTest;
+            let drawClockwise = false;
+
+            // אם נקודת המבחן מחוץ למצולע, סימן שהזווית הפנימית היא האפשרות המשלימה (הצד השני)
+            if (!isPointInPolygon(testX, testY)) {
+                finalAngle = 2 * Math.PI - diff;
+                finalMidAngle = midAngleTest + Math.PI;
+                drawClockwise = true;
+            }
+
+            let degrees = (finalAngle * 180) / Math.PI;
 
             angles.push({ 
                 vertex: curr, 
                 deg: degrees, 
-                angleCenter: midAngle, 
-                startAngle: aPrev, 
+                angleCenter: finalMidAngle, 
+                startAngle: aPrev,
                 endAngle: aNext,
-                isCCW: isCounterClockwise 
+                drawClockwise: drawClockwise
             });
         }
         return angles;
@@ -190,7 +195,7 @@
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. ציור גוף המצולע (שטח פנימי)
+        // 1. ציור גוף המצולע
         ctx.beginPath();
         ctx.moveTo(vertices[0].x, vertices[0].y);
         for (let i = 1; i < numSides; i++) {
@@ -210,10 +215,9 @@
         angles.forEach(a => {
             measuredSum += a.deg;
             
-            // ציור קשת הזווית בתוך הגוף
+            // ציור קשת הזווית המדויקת
             ctx.beginPath();
-            // הציור של הקשת מתבצע תמיד בצורה שתתאים לפנים הצורה
-            ctx.arc(a.vertex.x, a.vertex.y, 25, a.startAngle, a.startAngle + (a.isCCW ? (a.deg*Math.PI/180) : -(a.deg*Math.PI/180)), !a.isCCW); 
+            ctx.arc(a.vertex.x, a.vertex.y, 25, a.startAngle, a.endAngle, a.drawClockwise); 
             ctx.strokeStyle = '#e37405';
             ctx.lineWidth = 2.5;
             ctx.stroke();
@@ -224,14 +228,14 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // מיקום הטקסט דחוס פנימה לתוך הצורה
+            // מיקום טקסט מוסט פנימה לתוך השטח של המצולע
             const textDist = 45;
             const textX = a.vertex.x + textDist * Math.cos(a.angleCenter);
             const textY = a.vertex.y + textDist * Math.sin(a.angleCenter);
             ctx.fillText(`${Math.round(a.deg)}°`, textX, textY);
         });
 
-        // 3. ציור נקודות הקודקוד לגרירה
+        // 3. ציור נקודות קודקוד
         vertices.forEach(v => {
             ctx.beginPath();
             ctx.arc(v.x, v.y, vertexRadius, 0, 2 * Math.PI);
@@ -242,12 +246,11 @@
             ctx.stroke();
         });
 
-        // עדכון תיבת המידע למטה
+        // עדכון סטטיסטיקה
         const theoreticalSum = (numSides - 2) * 180;
         statsBox.textContent = `סכום זוויות תיאורטי: ${theoreticalSum}° | סכום נמדד בפועל: ${Math.round(measuredSum)}°`;
     }
 
-    // ניהול עכבר ונגיעות
     function getMousePos(e) {
         const rect = canvas.getBoundingClientRect();
         const actualX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -263,7 +266,7 @@
         for (let i = 0; i < numSides; i++) {
             const v = vertices[i];
             const dist = Math.hypot(v.x - pos.x, v.y - pos.y);
-            if (dist < vertexRadius + 10) {
+            if (dist < vertexRadius + 12) {
                 draggedVertex = v;
                 break;
             }
@@ -291,7 +294,7 @@
     canvas.addEventListener('touchmove', onMove, {passive: false});
     window.addEventListener('touchend', onEnd);
 
-    initPolygon(4); // הפעלה ראשונית כמרובע
+    initPolygon(4); 
 </script>
 
 </body>
