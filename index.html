@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בונה מצולעים דינמי - זוויות פנימיות בלבד</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 { color: #1a73e8; margin-top: 0; }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1557b0; }
+        #canvas-container {
+            position: relative;
+            background: #fafafa;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        canvas { display: block; }
+        .stats {
+            background: #e8f0fe;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1967d2;
+        }
+        .instructions {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📐 בונה מצולעים דינמי</h1>
+    <p class="instructions">גררו את הנקודות הכחולות. המערכת תחשב ותציג רק את הזוויות הפנימיות שבתוך הצורה!</p>
+    
+    <div class="controls">
+        <button onclick="changeSides(-1)">➖ פחות צלע</button>
+        <span id="sides-count" style="font-size: 18px; font-weight: bold;">צלעות: 5</span>
+        <button onclick="changeSides(1)">➕ הוסף צלע</button>
+        <button onclick="resetToRegular()" style="background-color: #34a853;">🔄 איפוס למצולע משוכלל</button>
+    </div>
+
+    <div id="canvas-container" style="width: 600px; height: 400px;">
+        <canvas id="polygonCanvas" width="600" height="400"></canvas>
+    </div>
+
+    <div class="stats" id="stats-box">
+        סכום הזוויות הפנימיות: 540° | סכום נמדד: 540°
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('polygonCanvas');
+    const ctx = canvas.getContext('2d');
+    const statsBox = document.getElementById('stats-box');
+    const sidesCountLabel = document.getElementById('sides-count');
+
+    let numSides = 5;
+    let vertices = [];
+    let draggedVertex = null;
+    const vertexRadius = 10;
+
+    function initPolygon(sides) {
+        numSides = sides;
+        vertices = [];
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 130;
+
+        for (let i = 0; i < numSides; i++) {
+            const angle = (i * 2 * Math.PI) / numSides - Math.PI / 2;
+            vertices.push({
+                x: centerX + radius * Math.cos(angle),
+                y: centerY + radius * Math.sin(angle)
+            });
+        }
+        sidesCountLabel.textContent = `צלעות: ${numSides}`;
+        draw();
+    }
+
+    function changeSides(amount) {
+        let newSides = numSides + amount;
+        if (newSides >= 3 && newSides <= 12) {
+            initPolygon(newSides);
+        }
+    }
+
+    function resetToRegular() {
+        initPolygon(numSides);
+    }
+
+    function isPolygonClockwise() {
+        let sum = 0;
+        for (let i = 0; i < numSides; i++) {
+            let v1 = vertices[i];
+            let v2 = vertices[(i + 1) % numSides];
+            sum += (v2.x - v1.x) * (v2.y + v1.y);
+        }
+        return sum > 0;
+    }
+
+    function calculateInteriorAngles() {
+        const angles = [];
+        const cw = isPolygonClockwise();
+
+        for (let i = 0; i < numSides; i++) {
+            const prev = vertices[(i - 1 + numSides) % numSides];
+            const curr = vertices[i];
+            const next = vertices[(i + 1) % numSides];
+
+            const anglePrev = Math.atan2(prev.y - curr.y, prev.x - curr.x);
+            const angleNext = Math.atan2(next.y - curr.y, next.x - curr.x);
+
+            let diff = angleNext - anglePrev;
+            if (diff < 0) diff += 2 * Math.PI;
+
+            let interiorAngle = cw ? (2 * Math.PI - diff) : diff;
+            let degrees = (interiorAngle * 180) / Math.PI;
+            
+            let midAngle = anglePrev + (cw ? -interiorAngle / 2 : interiorAngle / 2);
+
+            angles.push({ vertex: curr, deg: degrees, angleCenter: midAngle, rawInterior: interiorAngle, startAngle: anglePrev });
+        }
+        return angles;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.beginPath();
+        ctx.moveTo(vertices[0].x, vertices[0].y);
+        for (let i = 1; i < numSides; i++) {
+            ctx.lineTo(vertices[i].x, vertices[i].y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(26, 115, 232, 0.08)';
+        ctx.fill();
+        ctx.strokeStyle = '#1a73e8';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const angles = calculateInteriorAngles();
+        let measuredSum = 0;
+        const cw = isPolygonClockwise();
+
+        angles.forEach(a => {
+            measuredSum += a.deg;
+            
+            ctx.beginPath();
+            let start = a.startAngle;
+            let end = start + (cw ? -a.rawInterior : a.rawInterior);
+            ctx.arc(a.vertex.x, a.vertex.y, 25, Math.min(start, end), Math.max(start, end), false); 
+            ctx.strokeStyle = '#e37405';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#d93025';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const textDist = 45;
+            const textX = a.vertex.x + textDist * Math.cos(a.angleCenter);
+            const textY = a.vertex.y + textDist * Math.sin(a.angleCenter);
+            ctx.fillText(`${Math.round(a.deg)}°`, textX, textY);
+        });
+
+        vertices.forEach(v => {
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, vertexRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1a73e8';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+
+        const theoreticalSum = (numSides - 2) * 180;
+        statsBox.textContent = `סכום זוויות תיאורטי: ${theoreticalSum}° | סכום נמדד בפועל: ${Math.round(measuredSum)}°`;
+    }
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const actualX = e.touches ? e.touches[0].clientX : e.clientX;
+        const actualY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: actualX - rect.left,
+            y: actualY - rect.top
+        };
+    }
+
+    function onStart(e) {
+        const pos = getMousePos(e);
+        for (let i = 0; i < numSides; i++) {
+            const v = vertices[i];
+            const dist = Math.hypot(v.x - pos.x, v.y - pos.y);
+            if (dist < vertexRadius + 8) {
+                draggedVertex = v;
+                break;
+            }
+        }
+    }
+
+    function onMove(e) {
+        if (!draggedVertex) return;
+        e.preventDefault();
+        const pos = getMousePos(e);
+        draggedVertex.x = Math.max(vertexRadius, Math.min(canvas.width - vertexRadius, pos.x));
+        draggedVertex.y = Math.max(vertexRadius, Math.min(canvas.height - vertexRadius, pos.y));
+        draw();
+    }
+
+    function onEnd() {
+        draggedVertex = null;
+    }
+
+    canvas.addEventListener('mousedown', onStart);
+    canvas.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+
+    canvas.addEventListener('touchstart', onStart, {passive: false});
+    canvas.addEventListener('touchmove', onMove, {passive: false});
+    window.addEventListener('touchend', onEnd);
+
+    initPolygon(5);
+</script>
+
+</body>
+</html>
