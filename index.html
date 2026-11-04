@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>בונה מצולעים - זוויות פנימיות חסין טעויות</title>
+    <title>מעבדת מצולעים ומשולשים משוכללת</title>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -16,15 +16,41 @@
             color: #333;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             text-align: center;
         }
-        h1 { color: #1a73e8; margin-top: 0; }
+        h1 { color: #1a73e8; margin-top: 0; margin-bottom: 10px; }
+        
+        /* תפריט מצבים (Tabs) */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            background-color: #f1f3f4;
+            color: #3c4043;
+            border: 2px solid transparent;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { background-color: #e8eaed; }
+        .tab-btn.active {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            border-color: #1a73e8;
+        }
+
         .controls {
             margin-bottom: 20px;
             display: flex;
@@ -32,29 +58,63 @@
             align-items: center;
             gap: 15px;
             flex-wrap: wrap;
+            min-height: 45px;
         }
-        button {
+        button.action-btn {
             background-color: #1a73e8;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            transition: background 0.2s;
         }
-        button:hover { background-color: #1557b0; }
+        button.action-btn:hover { background-color: #1557b0; }
+        
+        .workspace {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
         #canvas-container {
             position: relative;
             background: #fafafa;
             border: 2px dashed #ccc;
             border-radius: 8px;
-            margin: 0 auto 20px;
             overflow: hidden;
-            cursor: crosshair;
         }
-        canvas { display: block; }
+        canvas { display: block; cursor: crosshair; }
+        
+        /* פאנל צידי פיתגורס */
+        .side-panel {
+            width: 240px;
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .side-panel h3 { margin-top: 0; color: #202124; border-bottom: 2px solid #1a73e8; padding-bottom: 5px;}
+        .triple-item { padding: 4px 0; font-family: monospace; font-size: 15px; }
+        .triple-match {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 8px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            from { transform: scale(1); } to { transform: scale(1.03); }
+        }
+
         .stats {
             background: #e8f0fe;
             padding: 15px;
@@ -63,45 +123,109 @@
             font-weight: bold;
             color: #1967d2;
         }
-        .instructions {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
-        }
+        .instructions { font-size: 14px; color: #5f6368; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📐 בונה מצולעים דינמי</h1>
-    <p class="instructions">גררו את הנקודות הכחולות. המערכת תציג בדיוק 90° בריבוע ותמיד תישאר בתוך המצולע!</p>
+    <h1>📐 מעבדת מצולעים ומשולשים דינמית</h1>
+    <p class="instructions" id="main-instructions">בחר מצב עבודה מלמעלה כדי לחקור זוויות ומשולשים!</p>
     
-    <div class="controls">
-        <button onclick="changeSides(-1)">➖ פחות צלע</button>
-        <span id="sides-count" style="font-size: 18px; font-weight: bold;">צלעות: 4</span>
-        <button onclick="changeSides(1)">➕ הוסף צלע</button>
-        <button onclick="resetToRegular()" style="background-color: #34a853;">🔄 איפוס למצולע משוכלל</button>
+    <!-- תפריט הטאבים -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchMode('irregular')">מצולע כללי (חופשי)</button>
+        <button class="tab-btn" onclick="switchMode('regular')">מצולע משוכלל (מרכזיות)</button>
+        <button class="tab-btn" onclick="switchMode('pythagoras')">משולש ישר זווית (פיתגורס)</button>
     </div>
 
-    <div id="canvas-container" style="width: 600px; height: 400px;">
-        <canvas id="polygonCanvas" width="600" height="400"></canvas>
+    <!-- כפתורי שליטה דינמיים לפי המצב -->
+    <div class="controls" id="controls-area">
+        <!-- יתמלא אוטומטית על ידי הג'אווהסקריפט -->
+    </div>
+
+    <div class="workspace">
+        <div id="canvas-container">
+            <canvas id="mainCanvas" width="600" height="400"></canvas>
+        </div>
+        
+        <!-- פאנל פיתגורס שיופיע רק במצב המתאים -->
+        <div class="side-panel" id="pythagoras-panel" style="display: none;">
+            <h3>שלשות פיתגוריות</h3>
+            <div id="current-triple-status"></div>
+            <div style="font-size: 13px; color:#666; margin-bottom:5px;">שלשות נפוצות לדוגמה:</div>
+            <div class="triple-item">🔹 3 , 4 , 5</div>
+            <div class="triple-item">🔹 5 , 12 , 13</div>
+            <div class="triple-item">🔹 6 , 8 , 10</div>
+            <div class="triple-item">🔹 8 , 15 , 17</div>
+            <div class="triple-item">🔹 9 , 12 , 15</div>
+        </div>
     </div>
 
     <div class="stats" id="stats-box">
-        סכום הזוויות הפנימיות: 360° | סכום נמדד: 360°
+        טוען מערכת...
     </div>
 </div>
 
 <script>
-    const canvas = document.getElementById('polygonCanvas');
+    const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
     const statsBox = document.getElementById('stats-box');
-    const sidesCountLabel = document.getElementById('sides-count');
+    const controlsArea = document.getElementById('controls-area');
+    const pythagorasPanel = document.getElementById('pythagoras-panel');
+    const mainInstructions = document.getElementById('main-instructions');
 
-    let numSides = 4; 
+    let currentMode = 'irregular'; // 'irregular' | 'regular' | 'pythagoras'
+    let numSides = 4;
     let vertices = [];
     let draggedVertex = null;
     const vertexRadius = 10;
+
+    // משתני משולש ישר זווית
+    let pythBase = 4;  // יחידות מדומות (כל יחידה = 40 פיקסלים)
+    let pythHeight = 3; 
+    let pythDraggedHandle = null; // 'base' | 'height'
+
+    function switchMode(mode) {
+        currentMode = mode;
+        draggedVertex = null;
+        pythDraggedHandle = null;
+        
+        // עדכון כפתורי תפריט
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.innerText.includes(
+            mode === 'irregular' ? 'כללי' : mode === 'regular' ? 'משוכלל' : 'ישר זווית'
+        ));
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // הסתרה/הצגה של הפאנל הצידי
+        pythagorasPanel.style.display = (mode === 'pythagoras') ? 'block' : 'none';
+
+        // בניית כפתורי שליטה והוראות בהתאם למצב
+        if (mode === 'irregular') {
+            mainInstructions.textContent = "גררו את הנקודות הכחולות. המערכת תחשב ותציג רק את הזוויות הפנימיות שבתוך הצורה!";
+            controlsArea.innerHTML = `
+                <button class="action-btn" onclick="changeSides(-1)">➖ פחות צלע</button>
+                <span id="sides-count" style="font-size: 18px; font-weight: bold;">צלעות: ${numSides}</span>
+                <button class="action-btn" onclick="changeSides(1)">➕ הוסף צלע</button>
+            `;
+            initPolygon(numSides);
+        } else if (mode === 'regular') {
+            mainInstructions.textContent = "שנו את מספר הצלעות. הקווים המקווקווים מגיעים מהמרכז ומציגים את הזוויות המרכזיות!";
+            controlsArea.innerHTML = `
+                <button class="action-btn" onclick="changeSides(-1)">➖ פחות צלע</button>
+                <span id="sides-count" style="font-size: 18px; font-weight: bold;">צלעות: ${numSides}</span>
+                <button class="action-btn" onclick="changeSides(1)">➕ הוסף צלע</button>
+            `;
+            initPolygon(numSides);
+        } else if (mode === 'pythagoras') {
+            mainInstructions.textContent = "גררו את הידיות הכתומות בקצוות המשולש כדי לשנות את אורך הניצבים ולגלות שלשות פיתגורס!";
+            controlsArea.innerHTML = `
+                <button class="action-btn" onclick="pythBase=4; pythHeight=3; draw();" style="background-color: #34a853;">🔄 איפוס ל-3,4,5</button>
+            `;
+            draw();
+        }
+    }
 
     function initPolygon(sides) {
         numSides = sides;
@@ -117,30 +241,28 @@
                 y: centerY + radius * Math.sin(angle)
             });
         }
-        sidesCountLabel.textContent = `צלעות: ${numSides}`;
+        const lbl = document.getElementById('sides-count');
+        if (lbl) lbl.textContent = `צלעות: ${numSides}`;
         draw();
     }
 
     function changeSides(amount) {
         let newSides = numSides + amount;
         if (newSides >= 3 && newSides <= 12) {
-            initPolygon(newSides);
+            numSides = newSides;
+            const lbl = document.getElementById('sides-count');
+            if (lbl) lbl.textContent = `צלעות: ${numSides}`;
+            initPolygon(numSides);
         }
     }
 
-    function resetToRegular() {
-        initPolygon(numSides);
-    }
-
-    // פונקציית בדיקה פיזית חסינת טעויות: האם נקודה נמצאת בתוך המצולע?
+    // פונקציות עזר למצולע כללי (חישוב נקודה פנימית)
     function isPointInPolygon(px, py) {
         let inside = false;
         for (let i = 0, j = numSides - 1; i < numSides; j = i++) {
             const xi = vertices[i].x, yi = vertices[i].y;
             const xj = vertices[j].x, yj = vertices[j].y;
-            
-            const intersect = ((yi > py) !== (yj > py))
-                && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+            const intersect = ((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
             if (intersect) inside = !inside;
         }
         return inside;
@@ -148,154 +270,5 @@
 
     function calculateInteriorAngles() {
         const angles = [];
-
+        let area = 0;
         for (let i = 0; i < numSides; i++) {
-            const prev = vertices[(i - 1 + numSides) % numSides];
-            const curr = vertices[i];
-            const next = vertices[(i + 1) % numSides];
-
-            // וקטורים לקודקוד הקודם והבא
-            const aPrev = Math.atan2(prev.y - curr.y, prev.x - curr.x);
-            const aNext = Math.atan2(next.y - curr.y, next.x - curr.x);
-
-            // חישוב זווית פוטנציאלית א'
-            let diff = aNext - aPrev;
-            if (diff < 0) diff += 2 * Math.PI;
-
-            // בדיקה על ידי שליחת "חיישן" קטן למרכז הזווית כדי לבדוק אם הוא בפנים או בחוץ
-            let midAngleTest = aPrev + diff / 2;
-            const testX = curr.x + 15 * Math.cos(midAngleTest);
-            const testY = curr.y + 15 * Math.sin(midAngleTest);
-
-            let finalAngle = diff;
-            let finalMidAngle = midAngleTest;
-            let drawClockwise = false;
-
-            // אם נקודת המבחן מחוץ למצולע, סימן שהזווית הפנימית היא האפשרות המשלימה (הצד השני)
-            if (!isPointInPolygon(testX, testY)) {
-                finalAngle = 2 * Math.PI - diff;
-                finalMidAngle = midAngleTest + Math.PI;
-                drawClockwise = true;
-            }
-
-            let degrees = (finalAngle * 180) / Math.PI;
-
-            angles.push({ 
-                vertex: curr, 
-                deg: degrees, 
-                angleCenter: finalMidAngle, 
-                startAngle: aPrev,
-                endAngle: aNext,
-                drawClockwise: drawClockwise
-            });
-        }
-        return angles;
-    }
-
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 1. ציור גוף המצולע
-        ctx.beginPath();
-        ctx.moveTo(vertices[0].x, vertices[0].y);
-        for (let i = 1; i < numSides; i++) {
-            ctx.lineTo(vertices[i].x, vertices[i].y);
-        }
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(26, 115, 232, 0.08)';
-        ctx.fill();
-        ctx.strokeStyle = '#1a73e8';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // 2. חישוב וציור הזוויות
-        const angles = calculateInteriorAngles();
-        let measuredSum = 0;
-
-        angles.forEach(a => {
-            measuredSum += a.deg;
-            
-            // ציור קשת הזווית המדויקת
-            ctx.beginPath();
-            ctx.arc(a.vertex.x, a.vertex.y, 25, a.startAngle, a.endAngle, a.drawClockwise); 
-            ctx.strokeStyle = '#e37405';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-
-            // טקסט מעלות
-            ctx.fillStyle = '#d93025';
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            // מיקום טקסט מוסט פנימה לתוך השטח של המצולע
-            const textDist = 45;
-            const textX = a.vertex.x + textDist * Math.cos(a.angleCenter);
-            const textY = a.vertex.y + textDist * Math.sin(a.angleCenter);
-            ctx.fillText(`${Math.round(a.deg)}°`, textX, textY);
-        });
-
-        // 3. ציור נקודות קודקוד
-        vertices.forEach(v => {
-            ctx.beginPath();
-            ctx.arc(v.x, v.y, vertexRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#1a73e8';
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        });
-
-        // עדכון סטטיסטיקה
-        const theoreticalSum = (numSides - 2) * 180;
-        statsBox.textContent = `סכום זוויות תיאורטי: ${theoreticalSum}° | סכום נמדד בפועל: ${Math.round(measuredSum)}°`;
-    }
-
-    function getMousePos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const actualX = e.touches ? e.touches[0].clientX : e.clientX;
-        const actualY = e.touches ? e.touches[0].clientY : e.clientY;
-        return {
-            x: actualX - rect.left,
-            y: actualY - rect.top
-        };
-    }
-
-    function onStart(e) {
-        const pos = getMousePos(e);
-        for (let i = 0; i < numSides; i++) {
-            const v = vertices[i];
-            const dist = Math.hypot(v.x - pos.x, v.y - pos.y);
-            if (dist < vertexRadius + 12) {
-                draggedVertex = v;
-                break;
-            }
-        }
-    }
-
-    function onMove(e) {
-        if (!draggedVertex) return;
-        e.preventDefault();
-        const pos = getMousePos(e);
-        draggedVertex.x = Math.max(vertexRadius, Math.min(canvas.width - vertexRadius, pos.x));
-        draggedVertex.y = Math.max(vertexRadius, Math.min(canvas.height - vertexRadius, pos.y));
-        draw();
-    }
-
-    function onEnd() {
-        draggedVertex = null;
-    }
-
-    canvas.addEventListener('mousedown', onStart);
-    canvas.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onEnd);
-
-    canvas.addEventListener('touchstart', onStart, {passive: false});
-    canvas.addEventListener('touchmove', onMove, {passive: false});
-    window.addEventListener('touchend', onEnd);
-
-    initPolygon(4); 
-</script>
-
-</body>
-</html>
