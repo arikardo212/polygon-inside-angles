@@ -1,165 +1,272 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מעבדת גיאומטריה דינמית</title>
-    <style>
-        body { font-family: system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 850px; width: 100%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
-        .tab-btn { background: #f1f3f4; border: 2px solid transparent; padding: 10px 18px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .tab-btn.active { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
-        .controls { margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 40px; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .workspace { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
-        #canvas-container { background: #fafafa; border: 2px dashed #ccc; border-radius: 8px; }
-        .side-panel { width: 180px; background: #f8f9fa; border: 1px solid #dadce0; border-radius: 8px; padding: 12px; text-align: right; }
-        .triple-match { background: #d4edda; color: #155724; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center; }
-        .stats { background: #e8f0fe; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; color: #1967d2; margin-top: 15px; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מעבדת גיאומטריה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eef3f0; --grid:#d3e0da; --card:#fbfdfc; --ink:#14302b; --mut:#587068;
+  --line:#0f766e; --fill:rgba(15,118,110,.13); --acc:#c2410c; --ok:#15803d; --okbg:#dcfce7; --bad:#9a3412; --badbg:#ffedd5; --bd:#bfd2ca;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --paper:#0f1d1b; --grid:#1b302c; --card:#152522; --ink:#e4f1ed; --mut:#93b0a8;
+    --line:#5eead4; --fill:rgba(94,234,212,.14); --acc:#fdba74; --ok:#86efac; --okbg:#14532d; --bad:#fdba74; --badbg:#431407; --bd:#27413c; }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Heebo,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:var(--ink);
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;min-height:100vh}
+header{padding:22px 20px 8px;max-width:1100px;margin:auto}
+h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:-.01em}
+.sub{color:var(--mut);margin:4px 0 0}
+nav{display:flex;gap:8px;max-width:1100px;margin:16px auto 0;padding:0 20px}
+nav button{font:inherit;font-weight:600;padding:10px 18px;border:1.5px solid var(--bd);background:var(--card);color:var(--ink);border-radius:10px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--line);color:var(--paper);border-color:var(--line)}
+nav button:focus-visible,input:focus-visible,.chip:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+main{max-width:1100px;margin:14px auto 40px;padding:0 20px;display:grid;grid-template-columns:320px 1fr;gap:16px}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.panel,.stage{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:16px}
+.panel h2{font-size:1.05rem;margin:0 0 10px}
+label{display:flex;justify-content:space-between;font-size:.92rem;margin:12px 0 2px}
+label b{font-variant-numeric:tabular-nums;color:var(--line)}
+input[type=range]{width:100%;accent-color:var(--line)}
+.row{display:flex;align-items:center;gap:8px;margin:10px 0}
+.angs{max-height:300px;overflow:auto;padding-inline-end:4px}
+.info{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--fill);font-size:.95rem;line-height:1.6}
+.badge{margin-top:12px;padding:10px 12px;border-radius:10px;font-weight:600;line-height:1.5}
+.badge.ok{background:var(--okbg);color:var(--ok)} .badge.no{background:var(--badbg);color:var(--bad)}
+svg{width:100%;height:auto;display:block;direction:ltr}
+#pSvg{touch-action:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font:inherit;font-size:.85rem;direction:ltr;padding:4px 9px;border:1.5px solid var(--bd);background:transparent;color:var(--ink);border-radius:999px;cursor:pointer}
+.chip:hover{border-color:var(--line);background:var(--fill)}
+.warn{color:var(--bad);font-weight:600}
+[hidden]{display:none!important}
+</style>
 </head>
 <body>
-<div class="container">
-    <h2 style="color:#1a73e8; margin:0 0 15px;">📐 מעבדת גיאומטריה דינמית</h2>
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchMode('irregular', event)">מצולע כללי</button>
-        <button class="tab-btn" onclick="switchMode('regular', event)">מצולע משוכלל</button>
-        <button class="tab-btn" onclick="switchMode('pythagoras', event)">משולש ישר זווית</button>
+<header>
+  <h1>מעבדת גיאומטריה</h1>
+  <p class="sub">בנו מצולעים וראו את הזוויות הפנימיות, או חפשו שלשות פיתגוריות במשולש ישר זווית.</p>
+</header>
+<nav role="tablist">
+  <button role="tab" id="tabP" aria-selected="true">מצולעים</button>
+  <button role="tab" id="tabT" aria-selected="false">משולש ישר זווית</button>
+</nav>
+
+<main id="polyView">
+  <section class="panel">
+    <h2>הגדרות המצולע</h2>
+    <label for="n">מספר צלעות <b id="nv"></b></label>
+    <input type="range" id="n" min="3" max="12" value="4">
+    <div class="row"><input type="checkbox" id="reg" checked><label for="reg" style="margin:0">מצולע משוכלל (כל הזוויות שוות)</label></div>
+    <div id="angBox" hidden>
+      <p class="sub" style="font-size:.85rem;margin:0">אפשר גם לגרור קודקוד בציור: רק הוא זז, והזוויות מתעדכנות. שינוי זווית אחת מחלק את השאר באופן יחסי, וסכום הזוויות נשמר. אפשר להגיע עד 350° – זווית גדולה מ-180° יוצרת מצולע קעור (חץ). דורש לפחות 4 צלעות.</p>
+      <div class="angs" id="angs"></div>
+      <button class="chip" id="resetAng" style="margin-top:8px">איפוס לזוויות שוות</button>
     </div>
-    <div class="controls" id="controls-area"></div>
-    <div class="workspace">
-        <div id="canvas-container"><canvas id="mainCanvas" width="540" height="360"></canvas></div>
-        <div class="side-panel" id="pythagoras-panel" style="display:none;">
-            <h4 style="margin:0 0 8px; border-bottom:2px solid #1a73e8;">שלשות פיתגורס</h4>
-            <div id="current-triple-status"></div>
-            <p style="font-size:11px; color:#666; margin:8px 0 0;">שלשות מוכרות:<br>3, 4, 5<br>5, 12, 13<br>6, 8, 10<br>8, 15, 17</p>
-        </div>
-    </div>
-    <div class="stats" id="stats-box">טוען מערכת...</div>
-</div>
+    <div class="info" id="pinfo"></div>
+  </section>
+  <section class="stage"><svg id="pSvg" viewBox="0 0 640 520" role="img" aria-label="מצולע"></svg></section>
+</main>
+
+<main id="triView" hidden>
+  <section class="panel">
+    <h2>הגדרות המשולש</h2>
+    <label for="ta">ניצב a <b id="tav"></b></label>
+    <input type="range" id="ta" min="1" max="40" step="1" value="3">
+    <label for="tb">ניצב b <b id="tbv"></b></label>
+    <input type="range" id="tb" min="1" max="40" step="1" value="4">
+    <label for="tal">זווית α (מול הניצב b) <b id="talv"></b></label>
+    <input type="range" id="tal" min="5" max="85" step="0.5" value="53">
+    <div class="info" id="tinfo"></div>
+    <div class="badge" id="tbadge"></div>
+    <h2 style="margin-top:16px">שלשות פיתגוריות (c ≤ 50)</h2>
+    <div class="chips" id="chips"></div>
+  </section>
+  <section class="stage"><svg id="tSvg" viewBox="0 0 640 480" role="img" aria-label="משולש ישר זווית"></svg></section>
+</main>
 
 <script>
-    const canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
-    const statsBox = document.getElementById('stats-box'), controlsArea = document.getElementById('controls-area'), pythagorasPanel = document.getElementById('pythagoras-panel');
-    let currentMode = 'irregular', numSides = 4, vertices =, draggedVertex = null, pythBase = 4, pythHeight = 3, pythDragged = null;
-    const vertexRadius = 10, scale = 25, originX = 150, originY = 280;
+const $=id=>document.getElementById(id);
+const R=Math.PI/180, fmt=(x,d=3)=>String(+x.toFixed(d));
+const pt=(v,th,r)=>[v[0]+r*Math.cos(th*R), v[1]+r*Math.sin(th*R)];
+const P=p=>p[0].toFixed(1)+','+p[1].toFixed(1);
 
-    function switchMode(mode, e) {
-        currentMode = mode; draggedVertex = pythDragged = null;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        if(e) e.target.classList.add('active'); else document.querySelector('.tab-btn').classList.add('active');
-        pythagorasPanel.style.display = (mode === 'pythagoras') ? 'block' : 'none';
-        if (mode === 'pythagoras') {
-            controlsArea.innerHTML = '<button class="btn" onclick="pythBase=4;pythHeight=3;draw();" style="background:#34a853;">איפוס ל-3,4,5</button>';
-        } else {
-            controlsArea.innerHTML = `<button class="btn" onclick="changeSides(-1)">➖ פחות צלע</button> <span id="sides-cnt" style="font-weight:bold;margin:0 5px;">צלעות: ${numSides}</span> <button class="btn" onclick="changeSides(1)">➕ הוסף צלע</button>`;
-        }
-        initPolygon();
-    }
+/* ציור זווית: קשת (או ריבוע ל-90°) + מספר מעלות. th = כיוון הקרן הראשונה, מסתובבים עם כיוון השעון */
+function angleMark(v,th,deg,label,arcR=24,labR=46){
+  let s;
+  if(Math.abs(deg-90)<0.01){
+    const q=16,a=pt(v,th,q),c=[a[0]+q*Math.cos((th+90)*R),a[1]+q*Math.sin((th+90)*R)],b=pt(v,th+90,q);
+    s=`<path d="M${P(a)} L${P(c)} L${P(b)}" fill="none" stroke="var(--acc)" stroke-width="2"/>`;
+  }else{
+    const a=pt(v,th,arcR),b=pt(v,th+deg,arcR);
+    s=`<path d="M${P(a)} A${arcR},${arcR} 0 ${deg>180?1:0} 1 ${P(b)}" fill="none" stroke="var(--acc)" stroke-width="2"/>`;
+  }
+  const t=pt(v,th+deg/2,labR+(deg<40?14:0));
+  return s+`<text x="${t[0].toFixed(1)}" y="${t[1].toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="700" fill="var(--acc)">${label}°</text>`;
+}
 
-    function initPolygon() {
-        if (currentMode === 'pythagoras') { draw(); return; }
-        vertices =; const cx = canvas.width / 2, cy = canvas.height / 2, r = 100;
-        for (let i = 0; i < numSides; i++) {
-            const a = (i * 2 * Math.PI) / numSides - Math.PI / 4;
-            vertices.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
-        }
-        const lbl = document.getElementById('sides-cnt'); if(lbl) lbl.textContent = `צלעות: ${numSides}`;
-        draw();
-    }
+/* ---------- מצולעים ---------- */
+const NAMES={3:'משולש',4:'מרובע',5:'מחומש',6:'משושה',7:'משובע',8:'מתומן',9:'מתושע',10:'מעושר',11:'בעל 11 צלעות',12:'בעל 12 צלעות'};
+let n=4, ang=[], pts=null, openTh=null, drag=-1, off=[0,0], lastDg=[];
+const PW=640, PH=520, PAD=75;
+const total=()=>(n-2)*180;
+function resetAng(){ang=Array(n).fill(total()/n);pts=null}
+function redistribute(i,v){
+  const lo=10,hi=350,T=total();
+  v=Math.min(Math.max(v,lo),Math.min(hi,T-(n-1)*lo));
+  const old=ang.slice(); ang[i]=v;
+  let free=old.map((_,k)=>k).filter(k=>k!==i);
+  for(let it=0;it<6;it++){
+    const rest=T-v-free.length*0-ang.filter((_,k)=>k!==i&&!free.includes(k)).reduce((a,b)=>a+b,0);
+    const base=free.reduce((a,k)=>a+old[k],0);
+    free.forEach(k=>ang[k]=old[k]*rest/base);
+    const bad=free.filter(k=>ang[k]<lo||ang[k]>hi);
+    if(!bad.length)break;
+    bad.forEach(k=>ang[k]=Math.min(Math.max(ang[k],lo),hi));
+    free=free.filter(k=>!bad.includes(k));
+    if(!free.length)break;
+  }
+}
+/* בניית קודקודים: כיוונים נקבעים מהזוויות, ואורכי הצלעות נפתרים כך שהמצולע ייסגר */
+function buildPoly(){
+  const th=[0];
+  for(let i=1;i<n;i++) th.push(th[i-1]+180-ang[i]);
+  const d=th.map(t=>[Math.cos(t*R),Math.sin(t*R)]);
+  const L=Array(n).fill(1), fixed=Array(n).fill(false);
+  let res=0;
+  for(let it=0;it<100;it++){
+    const r=[0,0]; L.forEach((l,i)=>{r[0]+=l*d[i][0];r[1]+=l*d[i][1]});
+    res=Math.hypot(r[0],r[1]); if(res<1e-9)break;
+    let m0=0,m1=0,m2=0;
+    d.forEach((v,i)=>{if(!fixed[i]){m0+=v[0]*v[0];m1+=v[0]*v[1];m2+=v[1]*v[1]}});
+    const det=m0*m2-m1*m1; if(Math.abs(det)<1e-12)break;
+    const lx=(m2*r[0]-m1*r[1])/det, ly=(m0*r[1]-m1*r[0])/det;
+    d.forEach((v,i)=>{if(!fixed[i]){L[i]-=v[0]*lx+v[1]*ly; if(L[i]<0.15){L[i]=0.15;fixed[i]=true}}});
+  }
+  const V=[[0,0]];
+  for(let i=0;i<n-1;i++) V.push([V[i][0]+L[i]*d[i][0],V[i][1]+L[i]*d[i][1]]);
+  const e=[V[n-1][0]+L[n-1]*d[n-1][0],V[n-1][1]+L[n-1]*d[n-1][1]];
+  return {V,th,closed:Math.hypot(e[0],e[1])<1e-3};
+}
+/* בדיקת חיתוך עצמי: האם שתי צלעות לא סמוכות נחתכות */
+function selfCross(V){
+  const m=V.length,cr=(o,p,q)=>(p[0]-o[0])*(q[1]-o[1])-(p[1]-o[1])*(q[0]-o[0]);
+  for(let i=0;i<m;i++)for(let j=i+2;j<m;j++){
+    if(i===0&&j===m-1)continue;
+    const p1=V[i],p2=V[(i+1)%m],p3=V[j],p4=V[(j+1)%m];
+    if(cr(p1,p2,p3)*cr(p1,p2,p4)<0&&cr(p3,p4,p1)*cr(p3,p4,p2)<0)return true;
+  }
+  return false;
+}
+function fitPts(V){
+  const xs=V.map(p=>p[0]),ys=V.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const s=Math.min((PW-2*PAD)/Math.max(x1-x0,1e-6),(PH-2*PAD)/Math.max(y1-y0,1e-6));
+  const ox=(PW-(x1-x0)*s)/2-x0*s, oy=(PH-(y1-y0)*s)/2-y0*s;
+  return V.map(p=>[p[0]*s+ox,p[1]*s+oy]);
+}
+const nrm=x=>((x+540)%360+360)%360-180;
+/* pts = מיקומי הקודקודים על המסך (מקור האמת). הזוויות מחושבות מהם, ולכן גרירת קודקוד לא מזיזה את השאר */
+function drawPoly(){
+  if(!pts){const bp=buildPoly();pts=fitPts(bp.V);openTh=bp.closed?null:bp.th}
+  const Q=pts; let th,dg;
+  if(openTh){th=openTh;dg=ang.slice()}
+  else{
+    th=Q.map((p,i)=>{const q=Q[(i+1)%n];return Math.atan2(q[1]-p[1],q[0]-p[0])/R});
+    dg=th.map((t,i)=>180-nrm(t-th[(i+n-1)%n]));
+  }
+  lastDg=dg;
+  const cross=!openTh&&selfCross(Q);
+  let out=`<polygon points="${Q.map(P).join(' ')}" fill="${openTh?'none':'var(--fill)'}" stroke="var(--line)" stroke-width="3" stroke-linejoin="round" ${openTh?'stroke-dasharray="8 6"':''}/>`;
+  Q.forEach((q,i)=>{out+=angleMark(q,th[i],+dg[i].toFixed(1),fmt(dg[i],1))});
+  Q.forEach((q,i)=>{out+=`<circle class="h" data-i="${i}" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="18" fill="transparent" style="cursor:grab"/><circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="6.5" fill="var(--line)" stroke="var(--card)" stroke-width="2" pointer-events="none"/>`});
+  if(cross) out+=`<text x="${PW/2}" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="var(--bad)">הצלעות נחתכות – זה כבר לא מצולע פשוט</text>`;
+  if(openTh) out+=`<text x="${PW/2}" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="var(--bad)">עם הזוויות האלה המצולע לא נסגר – שנו אותן, או גררו קודקוד</text>`;
+  $('pSvg').innerHTML=out;
+  $('pinfo').innerHTML=`<b>${NAMES[n]}</b> – ${n} צלעות<br>סכום הזוויות הפנימיות: (${n}−2)·180 = <b>${total()}°</b>`+
+    ($('reg').checked?`<br>כל זווית: ${total()}/${n} = <b>${fmt(total()/n,2)}°</b>`:'');
+}
+function drawAngSliders(){
+  $('angs').innerHTML=ang.map((a,i)=>`<label for="a${i}">זווית ${i+1} <b id="av${i}">${fmt(a,1)}°</b></label><input type="range" id="a${i}" min="10" max="350" step="0.5" value="${a}">`).join('');
+  ang.forEach((_,i)=>$('a'+i).oninput=e=>{redistribute(i,+e.target.value);syncAng();pts=null;drawPoly()});
+}
+function syncAng(){ang.forEach((a,i)=>{$('a'+i).value=a;$('av'+i).textContent=fmt(a,1)+'°'})}
+$('n').oninput=e=>{n=+e.target.value;$('nv').textContent=n;resetAng();drawAngSliders();drawPoly()};
+$('reg').onchange=e=>{$('angBox').hidden=e.target.checked;if(e.target.checked){resetAng();drawAngSliders()}drawPoly()};
+$('resetAng').onclick=()=>{resetAng();drawAngSliders();drawPoly()};
 
-    function changeSides(amt) { let s = numSides + amt; if (s >= 3 && s <= 12) { numSides = s; initPolygon(); } }
 
-    function isPointInPoly(px, py) {
-        let inside = false;
-        for (let i = 0, j = numSides - 1; i < numSides; j = i++) {
-            if (((vertices[i].y > py) !== (vertices[j].y > py)) && (px < (vertices[j].x - vertices[i].x) * (py - vertices[i].y) / (vertices[j].y - vertices[i].y) + vertices[i].x)) inside = !inside;
-        }
-        return inside;
-    }
-</script>
-<script>
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (currentMode === 'irregular' || currentMode === 'regular') {
-            ctx.beginPath(); ctx.moveTo(vertices.x, vertices.y);
-            for(let i=1; i<numSides; i++) ctx.lineTo(vertices[i].x, vertices[i].y);
-            ctx.closePath(); ctx.fillStyle = currentMode==='irregular'?'rgba(26,115,232,0.05)':'rgba(52,168,83,0.05)'; ctx.fill();
-            ctx.strokeStyle = currentMode==='irregular'?'#1a73e8':'#34a853'; ctx.lineWidth = 3; ctx.stroke();
-        }
+/* גרירת קודקוד: רק הקודקוד שאוחזים בו זז, וכל הזוויות מתעדכנות */
+const pSvg=$('pSvg');
+const toSvg=e=>{const p=pSvg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(pSvg.getScreenCTM().inverse())};
+pSvg.addEventListener('pointerdown',e=>{
+  const h=e.target.closest&&e.target.closest('.h'); if(!h||!pts)return;
+  drag=+h.dataset.i; const p=toSvg(e); off=[pts[drag][0]-p.x,pts[drag][1]-p.y];
+  pSvg.setPointerCapture(e.pointerId); e.preventDefault();
+});
+pSvg.addEventListener('pointermove',e=>{
+  if(drag<0)return;
+  const p=toSvg(e);
+  pts[drag]=[Math.min(PW-15,Math.max(15,p.x+off[0])),Math.min(PH-15,Math.max(15,p.y+off[1]))];
+  openTh=null;
+  if($('reg').checked){$('reg').checked=false;$('angBox').hidden=false}
+  drawPoly(); ang=lastDg.slice(); syncAng();
+});
+['pointerup','pointercancel'].forEach(t=>pSvg.addEventListener(t,()=>{drag=-1}));
 
-        if (currentMode === 'irregular') {
-            let area = 0; for(let i=0; i<numSides; i++) { let j=(i+1)%numSides; area += (vertices[i].x*vertices[j].y)-(vertices[j].x*vertices[i].y); }
-            let isCCW = area > 0, sum = 0;
-            for(let i=0; i<numSides; i++) {
-                const p = vertices[(i-1+numSides)%numSides], c = vertices[i], n = vertices[(i+1)%numSides];
-                const ap = Math.atan2(p.y-c.y, p.x-c.x), an = Math.atan2(n.y-c.y, n.x-c.x);
-                let diff = an - ap; if(diff < 0) diff += 2 * Math.PI;
-                let mid = ap + diff/2;
-                if (!isPointInPoly(c.x + 15 * Math.cos(mid), c.y + 15 * Math.sin(mid))) { diff = 2*Math.PI - diff; mid += Math.PI; }
-                let deg = diff * 180 / Math.PI; sum += deg;
-                ctx.beginPath(); ctx.arc(c.x, c.y, 20, ap, an, !isCCW); ctx.strokeStyle = '#e37405'; ctx.stroke();
-                ctx.fillStyle = '#d93025'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(`${Math.round(deg)}°`, c.x + 38 * Math.cos(mid), c.y + 38 * Math.sin(mid));
-            }
-            vertices.forEach(v => { ctx.beginPath(); ctx.arc(v.x, v.y, vertexRadius, 0, 2*Math.PI); ctx.fillStyle = '#1a73e8'; ctx.fill(); ctx.strokeStyle='white'; ctx.stroke(); });
-            statsBox.textContent = `סכום זוויות תיאורטי: ${(numSides-2)*180}° | נמדד: ${Math.round(sum)}°`;
-        } 
-        else if (currentMode === 'regular') {
-            const cx = canvas.width/2, cy = canvas.height/2, ca = 360/numSides;
-            for(let i=0; i<numSides; i++) {
-                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(vertices[i].x, vertices[i].y); ctx.strokeStyle = '#ccc'; ctx.stroke();
-                let a1 = Math.atan2(vertices[i].y-cy, vertices[i].x-cx), a2 = Math.atan2(vertices[(i+1)%numSides].y-cy, vertices[(i+1)%numSides].x-cx);
-                let ma = a1 + (a2-a1)/2; if(a2<a1 && (a1-a2)>Math.PI) ma += Math.PI;
-                ctx.beginPath(); ctx.arc(cx, cy, 25, a1, a2); ctx.strokeStyle = '#e37405'; ctx.stroke();
-                ctx.fillStyle = '#d93025'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${Math.round(ca)}°`, cx + 45 * Math.cos(ma), cy + 45 * Math.sin(ma));
-            }
-            ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2*Math.PI); ctx.fillStyle = '#333'; ctx.fill();
-            statsBox.textContent = `מצולע משוכלל | זווית מרכזית: ${Math.round(ca)}° | זווית פנימית: ${Math.round(((numSides-2)*180)/numSides)}°`;
-        } 
-        else if (currentMode === 'pythagoras') {
-            const ex = originX + pythBase * scale, ey = originY - pythHeight * scale;
-            ctx.beginPath(); ctx.moveTo(originX, originY); ctx.lineTo(ex, originY); ctx.lineTo(originX, ey); ctx.closePath();
-            ctx.fillStyle = 'rgba(241,139,14,0.05)'; ctx.fill(); ctx.strokeStyle = '#f18b0e'; ctx.lineWidth = 3; ctx.stroke();
-            ctx.beginPath(); ctx.rect(originX, originY - 12, 12, 12); ctx.strokeStyle = '#666'; ctx.stroke();
-            ctx.fillStyle = '#202124'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(`a = ${pythBase}`, originX + (pythBase*scale)/2, originY + 20);
-            ctx.textAlign = 'right'; ctx.fillText(`b = ${pythHeight}`, originX - 10, originY - (pythHeight*scale)/2);
-            let hyp = Math.sqrt(pythBase*pythBase + pythHeight*pythHeight);
-            ctx.textAlign = 'left'; ctx.fillText(`c = ${hyp.toFixed(2)}`, originX + (pythBase*scale)/2 + 8, originY - (pythHeight*scale)/2 - 8);
-            ctx.beginPath(); ctx.arc(ex, originY, vertexRadius, 0, 2*Math.PI); ctx.fillStyle = '#e37405'; ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.arc(originX, ey, vertexRadius, 0, 2*Math.PI); ctx.fillStyle = '#e37405'; ctx.fill(); ctx.stroke();
-            const isT = Number.isInteger(Math.round(hyp*1000)/1000);
+/* ---------- משולש ישר זווית ---------- */
+let a=3,b=4;
+const gcd=(x,y)=>y?gcd(y,x%y):x;
+function setTri(na,nb){a=Math.min(40,Math.max(1,na));b=Math.min(40,Math.max(1,nb));drawTri()}
+function drawTri(){
+  const c=Math.hypot(a,b), al=Math.atan2(b,a)/R, be=90-al;
+  $('ta').value=a;$('tb').value=b;$('tal').value=Math.round(al*2)/2;
+  $('tav').textContent=fmt(a);$('tbv').textContent=fmt(b);$('talv').textContent=fmt(al,1)+'°';
+  const W=640,H=480,s=Math.min((W-170)/a,(H-150)/b), x0=(W-a*s)/2+10, y0=(H-b*s)/2-5;
+  const Rr=[x0,y0+b*s],Bp=[x0+a*s,y0+b*s],Tp=[x0,y0];
+  let o=`<polygon points="${P(Rr)} ${P(Bp)} ${P(Tp)}" fill="var(--fill)" stroke="var(--line)" stroke-width="3" stroke-linejoin="round"/>`;
+  o+=angleMark(Rr,270,90,'90',16,42);
+  o+=angleMark(Bp,180,+al.toFixed(1),fmt(al,1),30,58);
+  o+=angleMark(Tp,al,+be.toFixed(1),fmt(be,1),30,58);
+  const lab=(x,y,t,anchor='middle')=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="central" font-size="20" font-weight="800" fill="var(--ink)">${t}</text>`;
+  o+=lab(x0+a*s/2,y0+b*s+26,'a = '+fmt(a));
+  o+=lab(x0-16,y0+b*s/2,'b = '+fmt(b),'end');
+  o+=lab((Bp[0]+Tp[0])/2+b/c*30,(Bp[1]+Tp[1])/2-a/c*30,'c = '+fmt(c),'start');
+  $('tSvg').innerHTML=o;
+  const A2=a*a,B2=b*b;
+  $('tinfo').innerHTML=`a² + b² = c²<br>${fmt(A2)} + ${fmt(B2)} = <b>${fmt(A2+B2)}</b><br>c = √${fmt(A2+B2)} = <b>${fmt(c)}</b><br>β = 90° − α = <b>${fmt(be,1)}°</b>`;
+  const ints=[a,b,c].every(x=>Math.abs(x-Math.round(x))<1e-6);
+  const bd=$('tbadge');
+  if(ints){const A=Math.round(a),B=Math.round(b),C=Math.round(c),g=gcd(gcd(A,B),C);
+    bd.className='badge ok';bd.textContent=`✓ שלשה פיתגורית: (${A}, ${B}, ${C})`+(g>1?` – כפולה פי ${g} של (${A/g}, ${B/g}, ${C/g})`:' – שלשה פרימיטיבית');
+  }else{bd.className='badge no';bd.textContent='לא שלשה פיתגורית: לא כל שלוש הצלעות שלמות.'}
+}
+$('ta').oninput=e=>setTri(+e.target.value,b);
+$('tb').oninput=e=>setTri(a,+e.target.value);
+$('tal').oninput=e=>{const t=+e.target.value;let nb=a*Math.tan(t*R),na=a;if(nb>40){nb=40;na=nb/Math.tan(t*R)}setTri(Math.max(na,1),nb)};
+(function chips(){
+  const L=[];
+  for(let x=1;x<=40;x++)for(let y=x;y<=40;y++){const z=Math.sqrt(x*x+y*y);if(z<=50&&Number.isInteger(z))L.push([x,y,z])}
+  L.sort((p,q)=>p[2]-q[2]);
+  $('chips').innerHTML=L.map(t=>`<button class="chip" data-a="${t[0]}" data-b="${t[1]}">${t[0]}-${t[1]}-${t[2]}</button>`).join('');
+  $('chips').onclick=e=>{const c=e.target.closest('.chip');if(c)setTri(+c.dataset.a,+c.dataset.b)};
+})();
 
-            document.getElementById('current-triple-status').innerHTML = isT ? 
-                `<div class="triple-match">🎉 שלשה פיתגורית!<br>[${pythBase}, ${pythHeight}, ${Math.round(hyp)}]</div>` : 
-                `<div style="font-size:12px;color:#666;border:1px dashed #ccc;padding:5px;text-align:center;">${pythBase}² + ${pythHeight}² = ${pythBase*pythBase+pythHeight*pythHeight}</div>`;
-            statsBox.textContent = `משפט פיתגורס: ${pythBase}² + ${pythHeight}² = ${isT ? Math.round(hyp) : hyp.toFixed(2)}²`;
-        }
-    }
+/* ---------- לשוניות ---------- */
+function tab(p){
+  $('polyView').hidden=!p;$('triView').hidden=p;
+  $('tabP').setAttribute('aria-selected',p);$('tabT').setAttribute('aria-selected',!p);
+  p?drawPoly():drawTri();
+}
+$('tabP').onclick=()=>tab(true);$('tabT').onclick=()=>tab(false);
 
-    function getMouse(e) { const r = canvas.getBoundingClientRect(); const x = e.touches ? e.touches.clientX : e.clientX; const y = e.touches ? e.touches.clientY : e.clientY; return { x: x - r.left, y: y - r.top }; }
-    function handlerStart(p) {
-        if (currentMode === 'irregular') { vertices.forEach(v => { if(Math.hypot(v.x-p.x, v.y-p.y) < vertexRadius+8) draggedVertex = v; }); }
-        else if (currentMode === 'pythagoras') {
-            if(Math.hypot((originX+pythBase*scale)-p.x, originY-p.y) < vertexRadius+10) pythDragged = 'b'; if(Math.hypot(originX-p.x, (originY-pythHeight*scale)-p.y) < vertexRadius+10) pythDragged = 'h';
-        }
-    }
-    function handlerMove(p) {
-        if (draggedVertex) { draggedVertex.x = Math.max(10, Math.min(canvas.width-10, p.x)); draggedVertex.y = Math.max(10, Math.min(canvas.height-10, p.y)); }
-        if (pythDragged === 'b') pythBase = Math.max(1, Math.min(15, Math.round((p.x-originX)/scale)));
-        if (pythDragged === 'h') pythHeight = Math.max(1, Math.min(10, Math.round((originY-p.y)/scale)));
-    }
-
-    canvas.addEventListener('mousedown', (e) => handlerStart(getMouse(e)));
-    canvas.addEventListener('mousemove', (e) => { if(draggedVertex||pythDragged) { e.preventDefault(); handlerMove(getMouse(e)); draw(); } });
-    window.addEventListener('mouseup', () => draggedVertex = pythDragged = null);
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handlerStart(getMouse(e)); }, {passive:false});
-    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handlerMove(getMouse(e)); draw(); }, {passive:false});
-    canvas.addEventListener('touchend', () => draggedVertex = pythDragged = null);
-
-    switchMode('irregular');
+$('nv').textContent=n;resetAng();drawAngSliders();drawPoly();drawTri();
 </script>
 </body>
 </html>
